@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>План недели</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=Unbounded:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a timetable board. Day picker on top, a live "now" card, then the day as a list of departures. */
+:root {
+  --bg: #eef0f4;
+  --surface: #ffffff;
+  --ink: #12151c;
+  --ink2: #4d5565;
+  --line: #d7dbe3;
+  --accent: #e5392b;
+  --k-school: #6c7588;
+  --k-study: #2f5bea;
+  --k-free: #b8439a;
+  --k-meal: #1d9a6c;
+  --k-calm: #0f8da3;
+  --k-trip: #a3a9b6;
+  --font-display: 'Unbounded', system-ui, sans-serif;
+  --font-body: 'Golos Text', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1117;
+    --surface: #171b24;
+    --ink: #eef1f6;
+    --ink2: #a7afbf;
+    --line: #2b3242;
+    --accent: #ff6a5c;
+    --k-school: #8b94a8;
+    --k-study: #7c9bff;
+    --k-free: #e079c4;
+    --k-meal: #4cc38f;
+    --k-calm: #4cc3d6;
+    --k-trip: #6f7686;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1117;
+  --surface: #171b24;
+  --ink: #eef1f6;
+  --ink2: #a7afbf;
+  --line: #2b3242;
+  --accent: #ff6a5c;
+  --k-school: #8b94a8;
+  --k-study: #7c9bff;
+  --k-free: #e079c4;
+  --k-meal: #4cc38f;
+  --k-calm: #4cc3d6;
+  --k-trip: #6f7686;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.4;
+  -webkit-text-size-adjust: 100%;
+}
+button { font: inherit; color: inherit; }
+button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.app { max-width: 1080px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.top { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.eyebrow { margin: 0; font-size: 13px; color: var(--ink2); }
+h1 { margin: 2px 0 0; font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: 1.15; letter-spacing: -0.01em; }
+.seg { display: inline-flex; border: 1.5px solid var(--ink); border-radius: 999px; padding: 2px; background: var(--surface); }
+.seg button { border: 0; background: transparent; padding: 7px 16px; border-radius: 999px; font-weight: 600; font-size: 14px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+
+.days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.day { position: relative; border: 1.5px solid var(--line); background: var(--surface); border-radius: 12px; padding: 8px 0 7px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.day b { font-size: 15px; font-weight: 700; }
+.day span { font-size: 12px; color: var(--ink2); font-variant-numeric: tabular-nums; }
+.day[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.day[aria-pressed="true"] span { color: var(--bg); opacity: .8; }
+.day.is-today::after { content: ""; position: absolute; top: 5px; right: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+
+.cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.side { display: flex; flex-direction: column; gap: 12px; }
+.dayhead h2 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 26px; line-height: 1.1; letter-spacing: -0.01em; }
+.dayhead p { margin: 6px 0 0; color: var(--ink2); font-size: 15px; }
+
+.now { background: var(--ink); color: var(--bg); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.now .lab { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 500; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+.now .lab i { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 35%, transparent); }
+.now h3 { margin: 0; font-size: 24px; line-height: 1.15; font-weight: 700; text-wrap: balance; }
+.now .sub { margin: 0; opacity: .8; font-size: 15px; font-variant-numeric: tabular-nums; }
+.bar-bg { height: 8px; border-radius: 99px; background: color-mix(in srgb, var(--bg) 25%, transparent); overflow: hidden; }
+.bar-fg { height: 100%; background: var(--accent); border-radius: 99px; }
+.next { margin: 0; padding-top: 10px; border-top: 1px solid color-mix(in srgb, var(--bg) 25%, transparent); font-size: 15px; font-variant-numeric: tabular-nums; }
+.next b { font-weight: 700; }
+
+.stats { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.stat { background: var(--surface); border: 1.5px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.stat dt { font-size: 12px; color: var(--ink2); }
+.stat dd { margin: 2px 0 0; font-weight: 700; font-size: 18px; font-variant-numeric: tabular-nums; }
+
+.timeline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.row { --kc: var(--k-school); display: grid; grid-template-columns: 58px 6px minmax(0, 1fr); gap: 12px; align-items: stretch; background: var(--surface); border: 1.5px solid var(--line); border-radius: 14px; padding: 12px 14px 12px 12px; }
+.k-school { --kc: var(--k-school); }
+.k-study { --kc: var(--k-study); }
+.k-free { --kc: var(--k-free); }
+.k-meal { --kc: var(--k-meal); }
+.k-calm { --kc: var(--k-calm); }
+.k-trip { --kc: var(--k-trip); }
+.row .t { display: flex; flex-direction: column; align-items: flex-end; font-variant-numeric: tabular-nums; }
+.row .t1 { font-weight: 700; font-size: 18px; line-height: 1.2; }
+.row .t2 { font-size: 13px; color: var(--ink2); }
+.row .bar { border-radius: 99px; background: var(--kc); }
+.row .tag { font-size: 12px; font-weight: 600; color: var(--ink2); display: flex; align-items: center; gap: 6px; }
+.row .tag::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--kc); }
+.row h3 { margin: 2px 0 0; font-size: 17px; line-height: 1.25; font-weight: 600; text-wrap: balance; }
+.row p { margin: 3px 0 0; font-size: 14px; color: var(--ink2); }
+.row.point { background: transparent; border-style: dashed; padding-top: 9px; padding-bottom: 9px; }
+.row.point .bar { background: transparent; position: relative; }
+.row.point .bar::before { content: ""; position: absolute; left: -2px; top: 4px; width: 10px; height: 10px; background: var(--ink); transform: rotate(45deg); border-radius: 2px; }
+.row.point h3 { margin: 0; }
+.row.is-now { border-color: var(--accent); border-width: 2.5px; box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 22%, transparent); }
+.row.is-past { opacity: .5; }
+
+#weekView { display: flex; flex-direction: column; gap: 10px; }
+.weekscroll { overflow-x: auto; background: var(--surface); border: 1.5px solid var(--line); border-radius: 14px; }
+.week { display: grid; grid-template-columns: 40px repeat(7, minmax(78px, 1fr)); min-width: 600px; padding-bottom: 12px; }
+.wh { height: 34px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; border-bottom: 1.5px solid var(--line); }
+.wh.is-today { color: var(--accent); }
+.wcol { position: relative; height: 646px; border-left: 1px solid var(--line); background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 37px, var(--line) 37px, var(--line) 38px); }
+.wcol.is-today { background-color: color-mix(in srgb, var(--accent) 6%, transparent); }
+.waxis { position: relative; height: 646px; }
+.waxis span { position: absolute; right: 5px; font-size: 11px; color: var(--ink2); font-variant-numeric: tabular-nums; line-height: 1; }
+.wb { position: absolute; left: 3px; right: 3px; overflow: hidden; border-left: 3px solid var(--kc, var(--k-school)); border-radius: 4px; background: color-mix(in srgb, var(--kc, var(--k-school)) 20%, var(--surface)); padding: 2px 4px; font-size: 11px; line-height: 1.15; font-weight: 600; }
+.wb.k-trip { background: transparent; border-left-style: dotted; }
+.wnow { position: absolute; left: 0; right: 0; height: 0; border-top: 2px solid var(--accent); z-index: 2; }
+.wnow::before { content: ""; position: absolute; left: -4px; top: -6px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--ink2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border-radius: 3px; background: var(--kc); }
+
+.foot { margin: 6px 0 12px; font-size: 13px; color: var(--ink2); }
+[hidden] { display: none !important; }
+
+@media (min-width: 560px) {
+  .app { padding: 24px; }
+  h1 { font-size: 28px; }
+  .day b { font-size: 17px; }
+}
+@media (min-width: 880px) {
+  .cols { grid-template-columns: 340px minmax(0, 1fr); gap: 24px; align-items: start; }
+  .side { position: sticky; top: 16px; }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bar-fg { transition: width .6s ease; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div>
+      <p class="eyebrow" id="dateline"></p>
+      <h1>План недели</h1>
+    </div>
+    <div class="seg" role="group" aria-label="Вид">
+      <button id="vDay" type="button" aria-pressed="true">День</button>
+      <button id="vWeek" type="button" aria-pressed="false">Неделя</button>
+    </div>
+  </header>
+
+  <nav class="days" id="days" aria-label="День недели"></nav>
+
+  <main id="dayView" class="cols">
+    <section class="side">
+      <div class="dayhead"><h2 id="dayTitle"></h2><p id="dayBlurb"></p></div>
+      <div id="nowCard" class="now" hidden></div>
+      <dl class="stats" id="stats"></dl>
+    </section>
+    <ol class="timeline" id="timeline"></ol>
+  </main>
+
+  <section id="weekView" hidden>
+    <div class="weekscroll"><div class="week" id="week"></div></div>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <p class="foot">Пробный период 2-3 недели, потом правим вместе. Школьное расписание: 1-я группа, с 30 ноября.</p>
+</div>
+
+<script>
+(function () {
+  var KIND = { school: 'Школа', study: 'Учёба', free: 'Свободное время и игры', meal: 'Еда и отдых', calm: 'Спокойный вечер', trip: 'В пути', point: '' };
+  var HOUR = 38;
+
+  function m(t) { var p = t.split(':'); return +p[0] * 60 + +p[1]; }
+  function f(min) { return Math.floor(min / 60) + ':' + ('0' + (min % 60)).slice(-2); }
+  function dur(min) { var h = Math.floor(min / 60), r = min % 60; return (h ? h + ' ч' : '') + (h && r ? ' ' : '') + (r ? r + ' мин' : ''); }
+  function it(s, e, k, title, note) { return { s: m(s), e: e ? m(e) : null, k: k, title: title, note: note || '' }; }
+
+  var DAYS = [
+    { n: 'Пн', full: 'Понедельник', blurb: 'Ранний подъём: школа с 7:10 до 14:15.', wake: '6:00', exit: '6:40', bed: '22:00', cap: 'до 2 ч', items: [
+      it('6:00', null, 'point', 'Подъём'),
+      it('6:15', '6:40', 'meal', 'Завтрак'),
+      it('6:40', '7:10', 'trip', 'Дорога в школу', 'Выход из дома в 6:40'),
+      it('7:10', '14:15', 'school', 'Школа', 'Перекус с собой'),
+      it('14:15', '14:45', 'trip', 'Дорога домой'),
+      it('14:45', '15:45', 'meal', 'Обед и отдых', 'Без игр'),
+      it('15:45', '17:00', 'study', 'Домашка + самостоятельная учёба'),
+      it('17:00', '17:45', 'study', 'Подтягиваем отстающий предмет'),
+      it('17:45', '19:30', 'free', 'Свободное время и игры'),
+      it('19:30', '20:15', 'meal', 'Ужин'),
+      it('20:15', '21:00', 'free', 'Свободное время и игры', 'Игры за вечер не больше 2 часов'),
+      it('21:00', '22:00', 'calm', 'Спокойный вечер', 'Список дел на завтра, чтение или аудио'),
+      it('22:00', null, 'point', 'Отбой')
+    ] },
+    { n: 'Вт', full: 'Вторник', blurb: 'Школа с 12:40 до 16:45. Утром есть время на учёбу.', wake: '7:30-8:00', exit: '12:10', bed: '22:00', cap: 'до 1,5 ч', items: [
+      it('7:30', null, 'point', 'Подъём', 'Между 7:30 и 8:00'),
+      it('8:00', '8:30', 'meal', 'Завтрак'),
+      it('9:00', '10:00', 'study', 'Подтягиваем отстающий предмет'),
+      it('10:00', '11:30', 'free', 'Свободное время'),
+      it('11:30', '12:00', 'meal', 'Обед'),
+      it('12:10', '12:40', 'trip', 'Дорога в школу', 'Выход из дома в 12:10'),
+      it('12:40', '16:45', 'school', 'Школа', 'Перекус с собой'),
+      it('16:45', '17:15', 'trip', 'Дорога домой'),
+      it('17:15', '18:00', 'meal', 'Перекус и отдых'),
+      it('18:00', '18:45', 'study', 'Домашка + самостоятельная учёба', 'До 30-45 минут'),
+      it('18:45', '19:30', 'free', 'Свободное время и игры'),
+      it('19:30', '20:15', 'meal', 'Ужин'),
+      it('20:15', '21:00', 'free', 'Свободное время и игры', 'Игры за вечер не больше 1,5 часа'),
+      it('21:00', '22:00', 'calm', 'Спокойный вечер'),
+      it('22:00', null, 'point', 'Отбой')
+    ] },
+    { n: 'Ср', full: 'Среда', blurb: 'Школа с 11:45 до 15:05. Утром повторение.', wake: '8:00', exit: '11:15', bed: '22:00', cap: 'до 2 ч', items: [
+      it('8:00', null, 'point', 'Подъём'),
+      it('8:15', '8:45', 'meal', 'Завтрак'),
+      it('9:00', '10:00', 'study', 'Повторение'),
+      it('10:00', '10:30', 'free', 'Свободное время'),
+      it('10:30', '11:00', 'meal', 'Обед'),
+      it('11:15', '11:45', 'trip', 'Дорога в школу', 'Выход из дома в 11:15'),
+      it('11:45', '15:05', 'school', 'Школа', 'Перекус с собой'),
+      it('15:05', '15:35', 'trip', 'Дорога домой'),
+      it('15:35', '16:30', 'meal', 'Перекус и отдых'),
+      it('16:30', '17:15', 'study', 'Домашка + самостоятельная учёба'),
+      it('17:15', '19:30', 'free', 'Свободное время и игры'),
+      it('19:30', '20:15', 'meal', 'Ужин'),
+      it('20:15', '21:00', 'free', 'Свободное время и игры', 'Игры за вечер не больше 2 часов'),
+      it('21:00', '22:00', 'calm', 'Спокойный вечер', 'В четверг подъём в 6:40'),
+      it('22:00', null, 'point', 'Отбой')
+    ] },
+    { n: 'Чт', full: 'Четверг', blurb: 'Самый длинный день: школа с 8:00 до 16:45.', wake: '6:40', exit: '7:20', bed: '22:00', cap: 'до 1 ч', items: [
+      it('6:40', null, 'point', 'Подъём'),
+      it('6:50', '7:15', 'meal', 'Завтрак'),
+      it('7:20', '8:00', 'trip', 'Дорога в школу', 'Выход из дома в 7:20'),
+      it('8:00', '16:45', 'school', 'Школа', 'Обед в школе: с собой или в столовой'),
+      it('16:45', '17:15', 'trip', 'Дорога домой'),
+      it('17:15', '18:00', 'meal', 'Перекус и отдых'),
+      it('18:00', '18:45', 'study', 'Домашка + самостоятельная учёба'),
+      it('18:45', '19:30', 'free', 'Свободное время и игры'),
+      it('19:30', '20:15', 'meal', 'Ужин'),
+      it('20:15', '21:00', 'free', 'Свободное время и игры', 'Игры за вечер не больше 1 часа'),
+      it('21:00', '22:00', 'calm', 'Спокойный вечер'),
+      it('22:00', null, 'point', 'Отбой')
+    ] },
+    { n: 'Пт', full: 'Пятница', blurb: 'Школа с 11:45 до 17:45. Вечер свободнее, впереди выходные.', wake: '8:00', exit: '11:15', bed: '22:30-23:00', cap: 'до 2 ч', items: [
+      it('8:00', null, 'point', 'Подъём'),
+      it('8:15', '8:45', 'meal', 'Завтрак'),
+      it('9:00', '10:00', 'study', 'Повторение недели'),
+      it('10:00', '10:30', 'free', 'Свободное время'),
+      it('10:30', '11:00', 'meal', 'Обед'),
+      it('11:15', '11:45', 'trip', 'Дорога в школу', 'Выход из дома в 11:15'),
+      it('11:45', '17:45', 'school', 'Школа', 'Перекус с собой'),
+      it('17:45', '18:15', 'trip', 'Дорога домой'),
+      it('18:15', '18:45', 'meal', 'Перекус и отдых'),
+      it('18:45', '19:30', 'free', 'Свободное время и игры'),
+      it('19:30', '20:15', 'meal', 'Ужин'),
+      it('20:15', '22:30', 'free', 'Свободное время и игры', 'Игры за вечер не больше 2 часов'),
+      it('22:30', null, 'point', 'Отбой', 'Между 22:30 и 23:00')
+    ] },
+    { n: 'Сб', full: 'Суббота', blurb: 'Без школы и без учёбы.', wake: 'до 9:30', exit: '—', bed: 'до 23:00', cap: '2-3 ч', items: [
+      it('9:30', null, 'point', 'Подъём', 'Не позже 9:30'),
+      it('9:30', '14:00', 'free', 'Свободное время и игры', 'Игры за день 2-3 часа, лучше в несколько частей'),
+      it('14:00', '14:45', 'meal', 'Обед', 'Около 14:00'),
+      it('14:45', '19:30', 'free', 'Прогулка, спорт, друзья, игры'),
+      it('19:30', '20:15', 'meal', 'Ужин'),
+      it('20:15', '23:00', 'free', 'Свободное время и игры'),
+      it('23:00', null, 'point', 'Отбой', 'До 23:00')
+    ] },
+    { n: 'Вс', full: 'Воскресенье', blurb: 'Днём домашка на понедельник, вечером рано спать.', wake: 'до 9:30', exit: '—', bed: '21:45-22:00', cap: 'до 2 ч', items: [
+      it('9:30', null, 'point', 'Подъём', 'Не позже 9:30'),
+      it('9:30', '14:00', 'free', 'Свободное время и игры'),
+      it('14:00', '14:45', 'meal', 'Обед', 'Около 14:00'),
+      it('14:45', '16:15', 'study', 'Домашка + самостоятельная учёба на понедельник', 'Днём, 1-1,5 часа'),
+      it('16:15', '19:30', 'free', 'Свободное время и игры', 'Игры за день до 2 часов'),
+      it('19:30', '20:15', 'meal', 'Ужин'),
+      it('20:15', '20:45', 'free', 'Свободное время и игры'),
+      it('20:45', '21:45', 'calm', 'Спокойный вечер', 'Экраны убрать. В понедельник подъём в 6:00'),
+      it('21:45', null, 'point', 'Отбой', 'Между 21:45 и 22:00')
+    ] }
+  ];
+
+  var el = function (id) { return document.getElementById(id); };
+  var sel = 0, view = 'day', todayIdx = 0, nowMin = 0, nowDate = new Date();
+
+  function clock() {
+    nowDate = new Date();
+    todayIdx = (nowDate.getDay() + 6) % 7;
+    nowMin = nowDate.getHours() * 60 + nowDate.getMinutes();
+  }
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  function renderDays() {
+    var monday = new Date(nowDate); monday.setDate(nowDate.getDate() - todayIdx);
+    var html = '';
+    DAYS.forEach(function (d, i) {
+      var dt = new Date(monday); dt.setDate(monday.getDate() + i);
+      html += '<button type="button" class="day' + (i === todayIdx ? ' is-today' : '') + '" data-i="' + i + '" aria-pressed="' + (i === sel) + '"><b>' + d.n + '</b><span>' + dt.getDate() + '</span></button>';
+    });
+    el('days').innerHTML = html;
+  }
+
+  function nextOf(d, isToday) {
+    if (!isToday) return null;
+    var n = d.items.filter(function (x) { return x.s > nowMin; })[0];
+    if (n) return { it: n, tomorrow: false };
+    var t = DAYS[(todayIdx + 1) % 7].items[0];
+    return { it: t, tomorrow: true };
+  }
+
+  function renderSide() {
+    var d = DAYS[sel], isToday = sel === todayIdx;
+    el('dayTitle').textContent = d.full;
+    el('dayBlurb').textContent = d.blurb;
+    el('stats').innerHTML =
+      '<div class="stat"><dt>Подъём</dt><dd>' + esc(d.wake) + '</dd></div>' +
+      '<div class="stat"><dt>Выход из дома</dt><dd>' + esc(d.exit) + '</dd></div>' +
+      '<div class="stat"><dt>Отбой</dt><dd>' + esc(d.bed) + '</dd></div>' +
+      '<div class="stat"><dt>Игры за день</dt><dd>' + esc(d.cap) + '</dd></div>';
+    var card = el('nowCard');
+    if (!isToday) { card.hidden = true; return; }
+    var blocks = d.items.filter(function (x) { return x.e !== null; });
+    var act = blocks.filter(function (x) { return nowMin >= x.s && nowMin < x.e; })[0];
+    var first = d.items[0].s, last = d.items[d.items.length - 1].s;
+    var title, sub = '', pct = 0;
+    if (act) {
+      title = act.title;
+      sub = 'до ' + f(act.e) + ', осталось ' + dur(act.e - nowMin);
+      pct = Math.round((nowMin - act.s) / (act.e - act.s) * 100);
+    } else if (nowMin < first || nowMin >= last) {
+      title = 'Время сна';
+    } else {
+      title = 'Перерыв';
+    }
+    var nx = nextOf(d, true);
+    var nxt = nx ? '<p class="next">' + (nx.tomorrow ? 'Завтра в ' : 'Дальше в ') + '<b>' + f(nx.it.s) + '</b> ' + esc(nx.it.title.toLowerCase().replace(/^./, function (c) { return c; })) + '</p>' : '';
+    card.innerHTML = '<div class="lab"><i></i>Сейчас ' + f(nowMin) + '</div><h3>' + esc(title) + '</h3>' +
+      (sub ? '<p class="sub">' + esc(sub) + '</p><div class="bar-bg" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '"><div class="bar-fg" style="width:' + pct + '%"></div></div>' : '') + nxt;
+    card.hidden = false;
+  }
+
+  function renderTimeline() {
+    var d = DAYS[sel], isToday = sel === todayIdx, html = '';
+    d.items.forEach(function (x) {
+      var cls = 'row k-' + x.k + (x.e === null ? ' point' : '');
+      var now = isToday && x.e !== null && nowMin >= x.s && nowMin < x.e;
+      var past = isToday && (x.e !== null ? nowMin >= x.e : nowMin > x.s);
+      if (now) cls += ' is-now'; else if (past) cls += ' is-past';
+      var t = '<span class="t1">' + f(x.s) + '</span>' + (x.e !== null ? '<span class="t2">' + f(x.e) + '</span>' : '');
+      var tag = x.k === 'point' ? '' : '<span class="tag">' + KIND[x.k] + (x.e !== null ? ' · ' + dur(x.e - x.s) : '') + '</span>';
+      html += '<li class="' + cls + '"' + (now ? ' aria-current="true"' : '') + '><div class="t">' + t + '</div><div class="bar"></div><div class="c">' + tag + '<h3>' + esc(x.title) + '</h3>' + (x.note ? '<p>' + esc(x.note) + '</p>' : '') + '</div></li>';
+    });
+    el('timeline').innerHTML = html;
+  }
+
+  function shortName(x) {
+    if (x.k === 'school') return 'Школа';
+    if (x.k === 'study') return x.title.indexOf('Домашка') === 0 ? 'Домашка' : (x.title.indexOf('Подтяг') === 0 ? 'Отстающий' : x.title);
+    if (x.k === 'free') return 'Игры';
+    if (x.k === 'calm') return 'Вечер';
+    if (x.k === 'trip') return '';
+    return x.title;
+  }
+
+  function renderWeek() {
+    var h = '<div><div class="wh"></div><div class="waxis">';
+    for (var i = 0; i <= 17; i++) h += '<span style="top:' + (i * HOUR - 5) + 'px">' + (6 + i) + ':00</span>';
+    h += '</div></div>';
+    DAYS.forEach(function (d, di) {
+      var isT = di === todayIdx;
+      h += '<div><div class="wh' + (isT ? ' is-today' : '') + '">' + d.n + '</div><div class="wcol' + (isT ? ' is-today' : '') + '">';
+      d.items.forEach(function (x) {
+        if (x.e === null) return;
+        var top = (x.s - 360) * HOUR / 60 + 1, ht = (x.e - x.s) * HOUR / 60 - 2;
+        h += '<div class="wb k-' + x.k + '" style="top:' + top + 'px;height:' + ht + 'px" title="' + esc(x.title) + ' ' + f(x.s) + '-' + f(x.e) + '">' + esc(shortName(x)) + '</div>';
+      });
+      if (isT && nowMin >= 360 && nowMin <= 1380) h += '<div class="wnow" style="top:' + ((nowMin - 360) * HOUR / 60) + 'px"></div>';
+      h += '</div></div>';
+    });
+    el('week').innerHTML = h;
+    var lg = '';
+    ['school', 'study', 'free', 'meal', 'calm', 'trip'].forEach(function (k) { lg += '<span class="k-' + k + '"><i></i>' + KIND[k] + '</span>'; });
+    el('legend').innerHTML = lg;
+  }
+
+  function setView(v) {
+    view = v;
+    el('dayView').hidden = v !== 'day';
+    el('days').hidden = v !== 'day';
+    el('weekView').hidden = v !== 'week';
+    el('vDay').setAttribute('aria-pressed', v === 'day');
+    el('vWeek').setAttribute('aria-pressed', v === 'week');
+    try { if (location.hash !== '#' + v) location.hash = v; } catch (e) {}
+  }
+
+  function paint() {
+    clock();
+    var d = new Date(nowDate);
+    el('dateline').textContent = cap(d.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }));
+    renderDays(); renderSide(); renderTimeline(); renderWeek();
+  }
+
+  el('days').addEventListener('click', function (e) {
+    var b = e.target.closest('.day');
+    if (!b) return;
+    sel = +b.getAttribute('data-i');
+    paint();
+  });
+  el('vDay').addEventListener('click', function () { setView('day'); });
+  el('vWeek').addEventListener('click', function () { setView('week'); });
+  window.addEventListener('hashchange', function () {
+    var h = (location.hash || '').replace('#', '');
+    if (h === 'week' || h === 'day') { if (h !== view) setView(h); }
+  });
+
+  clock();
+  sel = todayIdx;
+  paint();
+  var start = (location.hash || '').replace('#', '');
+  setView(start === 'week' ? 'week' : 'day');
+  setInterval(paint, 30000);
+})();
+</script>
+</body>
+</html>
